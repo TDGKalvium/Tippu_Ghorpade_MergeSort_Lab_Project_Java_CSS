@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MergeSort Lab | Interactive Visualizer</title>
+<link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+<header><div class="brand">MERGE<span>SORT</span> LAB</div><div class="tag">DESIGN & ANALYSIS OF ALGORITHMS · INTERACTIVE PROJECT</div></header>
+<main>
+<section class="hero">
+ <div class="card">
+  <div class="eyebrow">Learn by doing</div>
+  <h1>See how <span class="cyan">Merge Sort</span><br>organizes data.</h1>
+  <p>Explore the divide-and-conquer algorithm one step at a time. Watch the values split, compare, and merge into a sorted list.</p>
+  <div class="controls">
+   <input id="input" value="38, 12, 27, 43, 9, 31, 18, 25" aria-label="Numbers to sort">
+   <button class="primary" id="load">Load Array</button><button class="secondary" id="random">Randomize</button>
+  </div>
+ </div>
+ <div class="card">
+  <div class="statgrid">
+   <div class="stat"><b>O(n log n)</b><small>Best / Average / Worst</small></div>
+   <div class="stat"><b>Stable</b><small>Equal values keep order</small></div>
+   <div class="stat"><b>O(n)</b><small>Extra space (typical)</small></div>
+   <div class="stat"><b>Divide</b><small>Conquer · Merge</small></div>
+  </div>
+ </div>
+</section>
+<section class="layout">
+ <div class="card">
+  <div class="section-title"><h2>Array Visualizer</h2><span class="pill" id="counter">Ready</span></div>
+  <div id="bars" aria-label="Array bars"></div>
+  <div class="status" id="status">Enter up to 16 numbers, then press <b>Start Animation</b> to see Merge Sort work.</div>
+  <div class="step-controls"><button class="primary" id="start">▶ Start Animation</button><button class="secondary" id="step">Next Step →</button><button class="secondary" id="reset">Reset</button></div>
+  <div class="section-title" style="margin-top:22px"><h2>Sorted Output</h2><span class="pill">Ascending order</span></div>
+  <div class="status" id="output">Your sorted result will appear here.</div>
+ </div>
+ <aside class="card side">
+  <h3>How it works</h3>
+  <div class="sideblock"><b>01 · Divide</b><p>Split the array into smaller halves until each part has one item.</p></div>
+  <div class="sideblock"><b>02 · Conquer</b><p>Single-item arrays are already sorted. Recursively sort each half.</p></div>
+  <div class="sideblock"><b>03 · Merge</b><p>Compare the front values of two sorted halves and take the smaller one.</p></div>
+  <div class="sideblock"><b>Complexity</b><div class="complexity"><div><strong>O(n log n)</strong><span>Time</span></div><div><strong>O(n)</strong><span>Extra space</span></div></div></div>
+  <h3 style="margin-top:18px">Step history</h3><div class="history" id="history"><span class="chip">No steps yet</span></div>
+ </aside>
+</section>
+</main>
+<footer>MergeSort Lab · Created for a DAA micro project · Tippu Ghorpade · Squad 71</footer>
+<script>
+const input=document.getElementById('input'), bars=document.getElementById('bars'), statusBox=document.getElementById('status'), output=document.getElementById('output'), counter=document.getElementById('counter'), historyBox=document.getElementById('history');
+let original=[], steps=[], stepIndex=0, timer=null;
+function parse(){let a=input.value.split(/[,\s]+/).filter(Boolean).map(Number); if(!a.length||a.some(x=>!Number.isFinite(x)))throw Error('Please enter valid numbers separated by commas.'); if(a.length>16)throw Error('Use 16 numbers or fewer for a clear animation.'); return a;}
+function buildSteps(arr){
+ let list=[];
+ function mergeSort(a,depth=0){
+  if(a.length<=1){list.push({type:'base',array:a.slice(),depth,msg:`${JSON.stringify(a)} has one item, so it is already sorted.`});return a.slice();}
+  let mid=Math.floor(a.length/2), left=a.slice(0,mid), right=a.slice(mid);
+  list.push({type:'split',array:a.slice(),depth,msg:`Divide ${JSON.stringify(a)} into ${JSON.stringify(left)} and ${JSON.stringify(right)}.`});
+  left=mergeSort(left,depth+1); right=mergeSort(right,depth+1);
+  let i=0,j=0,res=[];
+  while(i<left.length&&j<right.length){let chosen=left[i]<=right[j]?left[i++]:right[j++];res.push(chosen);list.push({type:'compare',array:res.concat(left.slice(i),right.slice(j)),depth,active:chosen,msg:`Compare the front values and take ${chosen}.`});}
+  res=res.concat(left.slice(i),right.slice(j));
+  list.push({type:'merge',array:res.slice(),depth,msg:`Merge the sorted parts into ${JSON.stringify(res)}.`});
+  return res;
+ }
+ let sorted=mergeSort(arr);
+ list.push({type:'done',array:sorted.slice(),depth:0,msg:`Finished! The sorted array is ${JSON.stringify(sorted)}.`});
+ return {list,sorted};
+}
+function render(arr,active=null,sorted=false){
+ bars.innerHTML='';let max=Math.max(...arr.map(Math.abs),1);
+ arr.forEach(v=>{let w=document.createElement('div');w.className='barwrap';let b=document.createElement('div');b.className='bar'+(sorted?' sorted':(v===active?' active':''));b.style.height=Math.max(12,Math.abs(v)/max*205)+'px';b.textContent=v;let l=document.createElement('label');l.textContent='';w.append(b,l);bars.append(w);});
+}
+function load(){try{stop();original=parse();let result=buildSteps(original);steps=result.list;stepIndex=0;render(original);output.textContent='Sorted output will appear after the animation finishes.';statusBox.textContent='Array loaded. Press Start Animation or Next Step.';counter.textContent=`${original.length} items`;historyBox.innerHTML='<span class="chip">Ready to start</span>';}catch(e){statusBox.textContent=e.message;}}
+function next(){if(!steps.length)load();if(stepIndex>=steps.length){stop();return;}let s=steps[stepIndex];render(s.array,s.active,s.type==='done');statusBox.textContent=s.msg;counter.textContent=`Step ${stepIndex+1} / ${steps.length}`;let chip=document.createElement('span');chip.className='chip';chip.textContent=`${stepIndex+1}. ${s.type}`;historyBox.prepend(chip);if(historyBox.children.length>8)historyBox.lastChild.remove();if(s.type==='done')output.textContent=JSON.stringify(s.array);stepIndex++;}
+function stop(){if(timer){clearInterval(timer);timer=null;}document.getElementById('start').textContent='▶ Start Animation';}
+function start(){if(!steps.length||stepIndex>=steps.length)load();stop();document.getElementById('start').textContent='❚❚ Playing';timer=setInterval(()=>{if(stepIndex>=steps.length){stop();return;}next();},850);}
+document.getElementById('load').onclick=load;document.getElementById('random').onclick=()=>{input.value=Array.from({length:8},()=>Math.floor(Math.random()*90)+1).join(', ');load();};document.getElementById('start').onclick=()=>timer?stop():start();document.getElementById('step').onclick=()=>{stop();next();};document.getElementById('reset').onclick=()=>{stop();load();};load();
+</script>
+</body></html>
